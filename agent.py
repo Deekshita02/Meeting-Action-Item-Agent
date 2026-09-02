@@ -1,3 +1,7 @@
+bash
+cat /home/claude/meeting-agent/agent.py
+Output
+
 """
 Meeting Action-Item Agent
 -------------------------
@@ -26,7 +30,8 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from typing import Optional
 
-import anthropic
+from google import genai
+from google.genai import types as genai_types
 
 logging.basicConfig(
     filename=os.path.join(os.path.dirname(__file__), "agent_runs.log"),
@@ -34,7 +39,12 @@ logging.basicConfig(
     format="%(asctime)s %(message)s",
 )
 
-MODEL_NAME = "claude-sonnet-4-6"
+# Using Gemini's free tier (Google AI Studio) rather than a paid API,
+# since this is a portfolio project and the eval harness needed to be
+# run repeatably without incurring cost. The extraction logic, schema
+# validation, and human-approval gate below are model-agnostic — swapping
+# providers only touches this one function.
+MODEL_NAME = "gemini-2.5-flash"
 
 SYSTEM_PROMPT = """You are an action-item extraction agent for meeting transcripts.
 
@@ -92,7 +102,7 @@ def _validate_schema(data: dict) -> Optional[str]:
     return None
 
 
-def extract_action_items(transcript: str, client: Optional[anthropic.Anthropic] = None) -> RunResult:
+def extract_action_items(transcript: str, client: Optional["genai.Client"] = None) -> RunResult:
     """Calls the model once, validates the output, logs the run.
     Never writes anything to persistent storage — that only happens
     after explicit human approval (see save_approved_items)."""
@@ -101,27 +111,30 @@ def extract_action_items(transcript: str, client: Optional[anthropic.Anthropic] 
         return RunResult(success=False, error="empty transcript")
 
     if client is None:
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
         if not api_key:
-            return RunResult(success=False, error="ANTHROPIC_API_KEY not set")
-        client = anthropic.Anthropic(api_key=api_key)
+            return RunResult(success=False, error="GOOGLE_API_KEY not set")
+        client = genai.Client(api_key=api_key)
 
     input_hash = hashlib.sha256(transcript.encode("utf-8")).hexdigest()[:12]
     start = time.time()
 
     try:
-        response = client.messages.create(
+        response = client.models.generate_content(
             model=MODEL_NAME,
-            max_tokens=1500,
-            system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": transcript}],
+            contents=transcript,
+            config=genai_types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                max_output_tokens=1500,
+                response_mime_type="application/json",
+            ),
         )
     except Exception as e:
         logging.info(json.dumps({"input_hash": input_hash, "success": False, "error": f"api_error: {e}"}))
         return RunResult(success=False, error=f"API error: {e}")
 
     latency = time.time() - start
-    raw_text = "".join(block.text for block in response.content if block.type == "text")
+    raw_text = response.text or ""
 
     try:
         cleaned = raw_text.strip()
@@ -147,13 +160,14 @@ def extract_action_items(transcript: str, client: Optional[anthropic.Anthropic] 
         return RunResult(success=False, error=f"Schema validation failed: {schema_error}",
                           raw_response=raw_text, latency_seconds=latency)
 
+    usage = getattr(response, "usage_metadata", None)
     result = RunResult(
         success=True,
         action_items=data["action_items"],
         unclear_mentions=data.get("unclear_mentions", []),
         latency_seconds=latency,
-        input_tokens=response.usage.input_tokens,
-        output_tokens=response.usage.output_tokens,
+        input_tokens=getattr(usage, "prompt_token_count", 0) or 0,
+        output_tokens=getattr(usage, "candidates_token_count", 0) or 0,
         raw_response=raw_text,
     )
 
