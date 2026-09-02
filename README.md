@@ -51,7 +51,7 @@ and reproduced without storing full transcript text in the log.
 
 ```bash
 git clone <this-repo>
-cd meeting-agent
+cd Meeting-Action-Item-Agent
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env   # then fill in ANTHROPIC_API_KEY
@@ -89,14 +89,14 @@ turned into a fabricated action item with an invented owner.
 
 ## Evaluation
 
-`eval/test_cases.json` has 7 cases covering: a normal case, an ambiguous
+`test_cases.json` has 7 cases covering: a normal case, an ambiguous
 case with no clear owner, a case with a missing deadline, an empty-input
 edge case, a prompt-injection attempt embedded in transcript text, a
 multi-item case, and a case with conflicting/updated deadlines.
 
 Run it:
 ```bash
-python eval/eval_runner.py
+   python eval_runner.py
 ```
 
 This is deliberately a *small, honest* eval set (7 cases), meant to show the
