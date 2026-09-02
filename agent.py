@@ -40,7 +40,7 @@ logging.basicConfig(
 # run repeatably without incurring cost. The extraction logic, schema
 # validation, and human-approval gate below are model-agnostic — swapping
 # providers only touches this one function.
-MODEL_NAME = "gemini-2.5-flash"
+MODEL_NAME = "gemini-3.5-flash"
 
 SYSTEM_PROMPT = """You are an action-item extraction agent for meeting transcripts.
 
