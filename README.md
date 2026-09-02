@@ -21,7 +21,7 @@ Transcript (text)
 [ Streamlit UI ]  ──calls──▶  [ agent.py: extract_action_items() ]
                                      │
                                      ▼
-                         Claude API (single call, system prompt
+                         Gemini API (single call, system prompt
                          enforces JSON schema, no tools/loops)
                                      │
                                      ▼
@@ -54,14 +54,14 @@ git clone <this-repo>
 cd Meeting-Action-Item-Agent
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # then fill in ANTHROPIC_API_KEY
-export ANTHROPIC_API_KEY=your-key-here   # or use python-dotenv / Streamlit secrets
+cp .env.example .env   # then fill in GOOGLE_API_KEY (get one free at aistudio.google.com/apikey)
+export GOOGLE_API_KEY=your-key-here   # or use python-dotenv / Streamlit secrets
 streamlit run app.py
 ```
 
 To deploy publicly (e.g. for a shareable link), push this repo to GitHub and
 deploy on [Streamlit Community Cloud](https://streamlit.io/cloud), setting
-`ANTHROPIC_API_KEY` as a secret in the app settings.
+`GOOGLE_API_KEY` as a secret in the app settings.
 
 ## Sample input/output
 
@@ -98,6 +98,17 @@ Run it:
 ```bash
    python eval_runner.py
 ```
+**Latest run (Gemini 3.5 Flash, 7 cases):**
+- Total check pass rate: 19/19 (100%)
+- Cases fully passed: 7/7
+- Average latency: 2.32s per extraction
+
+This covers a normal case, an ambiguous no-owner case, a missing-deadline case,
+an empty-input edge case, a prompt-injection attempt, a multi-item case, and a
+conflicting/updated-deadline case. A 100% pass rate on 7 cases shows the basic
+mechanism works, not that the agent is bulletproof — the next real test is
+running it against messier, longer, real-world transcripts and expanding past
+these 7 categories.
 
 This is deliberately a *small, honest* eval set (7 cases), meant to show the
 methodology — automated pass/fail per check, categorized by failure type,
