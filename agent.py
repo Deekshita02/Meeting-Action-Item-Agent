@@ -1,7 +1,3 @@
-bash
-cat /home/claude/meeting-agent/agent.py
-Output
-
 """
 Meeting Action-Item Agent
 -------------------------
