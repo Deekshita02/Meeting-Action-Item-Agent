@@ -1,5 +1,6 @@
 import streamlit as st
-from agent import extract_action_items, save_approved_items
+from agent import save_approved_items
+from graph_agent_fast import extract_with_review_fast as extract_action_items
 
 st.set_page_config(page_title="Meeting Action-Item Agent", page_icon="✅", layout="centered")
 
@@ -96,7 +97,8 @@ if st.session_state.approved_count:
 
 st.divider()
 st.caption(
-    "This is a deliberately small, single-purpose agent: one model call, one job, "
-    "a validated schema, and a hard human-approval gate before anything persists. "
-    "See eval/ for the evaluation harness and agent_runs.log for run traces."
+    "A small, single-purpose agent: an extractor, a rule-based grounding check, and an "
+    "independent LLM reviewer that only runs on suspicious inputs, built as a LangGraph "
+    "workflow. A validated schema and a hard human-approval gate come before anything "
+    "persists. See eval_runner.py for the evaluation harness and agent_runs.log for run traces."
 )
